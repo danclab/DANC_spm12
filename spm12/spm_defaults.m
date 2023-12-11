@@ -46,7 +46,7 @@ defaults.renderer   = 'zbuffer';
 % left/right handedness of the voxel indices is now done entirely by
 % spm_flip_analyze_images.m
 defaults.images.format  = 'nii'; % options: 'img', 'nii'
-defaults.mat.format     = '-v6'; % options: '-mat', '-v6', '-v7.0', '-v7.3'
+defaults.mat.format     = '-v7.3'; % options: '-mat', '-v6', '-v7.0', '-v7.3'
 
 % Toolboxes defaults
 %==========================================================================

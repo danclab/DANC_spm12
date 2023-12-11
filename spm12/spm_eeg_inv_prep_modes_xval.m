@@ -76,11 +76,14 @@ if isempty(Nmodes),
 else
     fprintf('\nUsing %d spatial modes\n',Nmodes);
 end;
-allL=spm_eeg_lgainmat(D);
+allL=[];
+if Nfiles>1 && Nmodes<Ntrain
+    allL=spm_eeg_lgainmat(D);
+    if size(allL,1)~=length(megind),
+        error('Mismatch in channel numbers (internal error)');
+    end;
+end
 
-if size(allL,1)~=length(megind),
-    error('Mismatch in channel numbers (internal error)');
-end;
 
 
 U={};

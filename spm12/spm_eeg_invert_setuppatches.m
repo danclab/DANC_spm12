@@ -100,7 +100,7 @@ for k=1:Npatchiter,
     fprintf('Saving %s\n',priorfname);
     F=[]; % no associated free energy value
     allpriornames=strvcat(allpriornames,priorfname);
-    save(priorfname,'Qp','Qe','UL','F');
+    save(priorfname,'Qp','Qe','UL','F','-v7.3');
 end; % for k
 
 

@@ -230,16 +230,39 @@ switch smoothtype,
         
     case 'mm_smooth',
         
-         kernelname=spm_eeg_smoothmesh_mm(D.inv{val}.mesh.tess_ctx,s);
-         asmth=load(kernelname,'QG','M');
-         if max(int32(asmth.M.faces)-int32(face))~=0,
-             error('Smoothing kernel used different mesh');
-         end;
-         QG=asmth.QG;
-         if D.inv{val}.forward.loc
-            QG=repmat(QG,2,2);
-         end
-         clear asmth;
+        % Changed because the python version of smoothmesh doesn't save the
+        % gifti object - just the matrix of faces
+        kernelname = spm_eeg_smoothmesh_mm(D.inv{val}.mesh.tess_ctx, s);
+        asmth = load(kernelname, 'QG', 'M', 'faces');
+
+        % Check if asmth contains 'M' or 'faces'
+        if isfield(asmth, 'M')
+            % If M is a gifti object, extract the faces from M
+            if isa(asmth.M, 'gifti')
+                meshFaces = double(asmth.M.faces);
+            else
+                error('M is not a recognized format.');
+            end
+        elseif isfield(asmth, 'faces')
+            % Directly use the faces matrix
+            meshFaces = double(asmth.faces);
+        else
+            error('No valid mesh face data found in the smoothing kernel file.');
+        end
+
+        % Check if the faces of the current mesh match the loaded faces
+        if max(int32(meshFaces) - int32(face)) ~= 0
+            error('Smoothing kernel used different mesh');
+        end
+
+        QG = asmth.QG;
+
+        % Replicate QG if necessary
+        if D.inv{val}.forward.loc
+            QG = repmat(QG, 2, 2);
+        end
+
+        clear asmth;
         
         
         

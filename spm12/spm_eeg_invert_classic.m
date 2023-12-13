@@ -258,9 +258,9 @@ switch smoothtype,
         QG = asmth.QG;
 
         % Replicate QG if necessary
-        if D.inv{val}.forward.loc
-            QG = repmat(QG, 2, 2);
-        end
+%         if D.inv{val}.forward.loc
+%             QG = repmat(QG, 2, 2);
+%         end
 
         clear asmth;
         

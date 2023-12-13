@@ -1,4 +1,4 @@
-function [Dnew,meshsourceind]=spm_eeg_simulate(D,prefix,patchmni,simsignal,ormni,woi,whitenoise,SNRdB,trialind,mnimesh,dipfwhm,nAmdipmom,noiseD)
+function [Dnew,meshsourceind]=spm_eeg_simulate(D,prefix,meshsourceind,simsignal,ormni,woi,whitenoise,SNRdB,trialind,mnimesh,dipfwhm,nAmdipmom,noiseD)
 %function [Dnew,meshsourceind]=spm_eeg_simulate(D,prefix,patchmni,simsignal,woi,whitenoise,SNRdB,trialind,mnimesh,dipfwhm);
 %% Simulate a number of MSP patches at specified locations on existing mesh
 %
@@ -29,7 +29,8 @@ if nargin<2,
 end;
 
 if nargin<3,
-    patchmni=[];
+    %patchmni=[];
+    meshsourceind=[];
 end;
 
 
@@ -88,13 +89,6 @@ val=D{useind}.val;
 
 
 
-if isempty(patchmni),
-    patchmni=[-45.4989  -30.6967    4.9213;...
-        46.7322  -31.2311    4.0085];
-    
-end;
-
-
 if ~xor(xor(~isempty(whitenoise),~isempty(SNRdB)),~isempty(noiseD))
     error('Must specify either white noise level or sensor level SNR');
 end;
@@ -127,35 +121,32 @@ if ~isempty(mnimesh),
 end; % if
 
 % Two synchronous sources
-if ~isempty(patchmni),
-    Ndips=size(patchmni,1);
-else
-    Ndips=0;
-end;
+% if ~isempty(patchmni),
+%     Ndips=size(patchmni,1);
+% else
+%     Ndips=0;
+% end;
+Ndips=length(meshsourceind);
 
 if size(simsignal,1)~=Ndips,
     error('number of signals given does not match number of sources');
 end;
 
-meshsourceind=[];
-
-disp('Using closest mesh vertices to the specified coordinates')
-for d=1:Ndips,
-    vdist= Dnew.inv{val}.mesh.tess_mni.vert-repmat(patchmni(d,:),size(Dnew.inv{val}.mesh.tess_mni.vert,1),1);
-    dist=sqrt(dot(vdist',vdist'));
-    [mnidist(d),meshsourceind(d)] =min(dist);
-end;
-
-disp(sprintf('Furthest distance from dipole location to mesh %3.2f mm',max(mnidist)));
-if max(mnidist)>0.1
-    warning('Supplied vertices do not sit on the mesh!');
-end;
-
-
-Ndip = size(simsignal,1);       % Number of dipoles
+% meshsourceind=[];
+% 
+% disp('Using closest mesh vertices to the specified coordinates')
+% for d=1:Ndips,
+%     vdist= Dnew.inv{val}.mesh.tess_mni.vert-repmat(patchmni(d,:),size(Dnew.inv{val}.mesh.tess_mni.vert,1),1);
+%     dist=sqrt(dot(vdist',vdist'));
+%     [mnidist(d),meshsourceind(d)] =min(dist);
+% end;
+% 
+% disp(sprintf('Furthest distance from dipole location to mesh %3.2f mm',max(mnidist)));
+% if max(mnidist)>0.1
+%     warning('Supplied vertices do not sit on the mesh!');
+% end;
 
 
-%if isequal(modstr, 'MEG')
 try
     chanind = Dnew.indchantype({'MEG', 'MEGPLANAR'}, 'GOOD');
 catch
@@ -194,13 +185,13 @@ if length(f1ind)~=size(simsignal,2),
     error('Signal does not fit in time window');
 end;
 
-labels=Dnew.chanlabels(chanind);
-chan_idx=Dnew.indchantype('MEG');
+% labels=Dnew.chanlabels(chanind);
+% chan_idx=Dnew.indchantype('MEG');
 simscale=1.0;
 
 try
     %% white noise is input in fT or uV so convert it to data sensorunits
-    switch sensorunits{chan_idx(1)}
+    switch sensorunits{chanind(1)}
         case 'T'
             simscale=1e-15; %% convert from fT to T
             %whitenoise=whitenoise./1e15; %% rms femto Tesla
@@ -232,12 +223,15 @@ if ~isempty(ormni), %%%% DIPOLE SIMULATION
 
     Nchans=length(chanind);
 
-    if size(ormni)~=size(patchmni),
+    if size(ormni,1)~=length(meshsourceind),
         error('A 3D orientation must be specified for each source location');
     end;
     
-    posdipmm=Dnew.inv{val}.datareg.fromMNI*[patchmni ones(size(ormni,1),1)]'; %% put into MEG space
-    posdipmm=posdipmm(1:3,:)';
+    
+%     posdipmm=Dnew.inv{val}.datareg.fromMNI*[patchmni ones(size(ormni,1),1)]'; %% put into MEG space
+%     posdipmm=posdipmm(1:3,:)';
+    %posdipmm=Dnew.inv{1}.mesh.tess_mni.vert(meshsourceind,:); 
+    posdipmm=Dnew.inv{val}.forward.mesh.vert(meshsourceind,:);
     
     %% need to make a pure rotation for orientation transform to native space
     M=Dnew.inv{val}.datareg.fromMNI*Dnew.inv{val}.mesh.Affine;
@@ -263,16 +257,18 @@ if ~isempty(ormni), %%%% DIPOLE SIMULATION
     if length(size(simsignal))==2
         tmp=zeros(length(chanind),Dnew.nsamples);
 
-        for i=1:Ndip,
-            gmn = ft_compute_leadfield(posdipmm(i,:)*1e-3, sens, vol,  'dipoleunit', 'nA*m','chanunit',sensorunits(sensorind));
+        for i=1:Ndips,
+            %gmn = ft_compute_leadfield(posdipmm(i,:)*1e-3, sens, vol,  'dipoleunit', 'nA*m','chanunit',sensorunits(sensorind));
+            gmn = ft_compute_leadfield(posdipmm(i,:), sens, vol,  'dipoleunit', 'nA*m','chanunit',sensorunits(sensorind));
             gmn = gmn(reorderIdx, :);
             gain=gmn(chanind,:)*ordip(i,:)'*nAmdipmom(i);            
             tmp(:,f1ind)=tmp(:,f1ind)+gain*simsignal(i,:);
         end; % for i
     else
         tmp=zeros(length(chanind),Dnew.nsamples,Dnew.ntrials);
-        for i=1:Ndip,
-            gmn = ft_compute_leadfield(posdipmm(i,:)*1e-3, sens, vol,  'dipoleunit', 'nA*m','chanunit',sensorunits(sensorind));
+        for i=1:Ndips,
+            %gmn = ft_compute_leadfield(posdipmm(i,:)*1e-3, sens, vol,  'dipoleunit', 'nA*m','chanunit',sensorunits(sensorind));
+            gmn = ft_compute_leadfield(posdipmm(i,:), sens, vol,  'dipoleunit', 'nA*m','chanunit',sensorunits(sensorind));
             gmn = gmn(reorderIdx, :);
             gain=gmn(chanind,:)*ordip(i,:)'*nAmdipmom(i);
             for j=1:Dnew.ntrials
@@ -324,12 +320,12 @@ else %%% CURRENT DENSITY ON SURFACE SIMULATION
 
     % Add waveform of all smoothed sources to their equivalent dipoles
     % QGs add up to 0.9854
-    fullsignal=zeros(Ndip,Dnew.nsamples); %% simulation padded with zeros
-    fullsignal(1:Ndip,f1ind)=simsignal;
+    fullsignal=zeros(Ndips,Dnew.nsamples); %% simulation padded with zeros
+    fullsignal(1:Ndips,f1ind)=simsignal;
     
     tmp     = sparse(zeros(Nchans,Dnew.nsamples));                     % simulated data
     X=zeros(size(full(Qp{1}.q)));
-    for j=1:Ndip
+    for j=1:Ndips
         Lq=L*Qp{j}.q; %% lead field * prior source distribution
         X=X+full(Qp{j}.q);
         for i=1:Dnew.nsamples,

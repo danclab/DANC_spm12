@@ -192,7 +192,7 @@ catch
     % Save
     %----------------------------------------------------------------------
     D.inv{val}.gainmat = ['SPMgainmatrix_' spm_file(D.fname, 'basename') '_' num2str(val) '.mat'];
-    save(fullfile(D.path, D.inv{val}.gainmat), 'G', 'label');
+    save(fullfile(D.path, D.inv{val}.gainmat), 'G', 'label', '-v7.3');
     save(D);
 end
 

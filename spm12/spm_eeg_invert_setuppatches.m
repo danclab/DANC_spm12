@@ -1,4 +1,4 @@
-function [Qp,Qe,allpriornames] = spm_eeg_invert_setuppatches(allIp,mesh,base,priordir,Qe,UL)
+function [Qp,Qe] = spm_eeg_invert_setuppatches(allIp,mesh,base,Qe)
 % Set prior files for source inversion
 % FORMAT [Qp,Qe,allpriornames] = spm_eeg_invert_setuppatches(allIp,mesh,base,priordir,Qe,UL)
 % Each file contains  number of smooth patches on cortical surface a
@@ -23,7 +23,6 @@ function [Qp,Qe,allpriornames] = spm_eeg_invert_setuppatches(allIp,mesh,base,pri
 
 Npatchiter=size(allIp,1);
 Np=size(allIp,2);%% number of patches per iteration
-smoothm=base.FWHMmm./1000;
 disp(sprintf('Using %d iterations of %d fixed patches',Npatchiter,Np));
 
 
@@ -48,16 +47,16 @@ else
 end;
  fprintf('\nSmoothness of first patches is set to %3.2fmm\n',smoothm(1)*1000);
 
-if length(smoothm)==1,
+if length(smoothm)==1
     smoothm=ones(Np,1).*smoothm; %% turn it into a vector
 end;
 
 
-[priorfiles] = spm_select('FPListRec',priordir,'.*\.mat$');
-priorcount=size(priorfiles,1);
-allpriornames=[];
+% [priorfiles] = spm_select('FPListRec',priordir,'.*\.mat$');
+% priorcount=size(priorfiles,1);
+% allpriornames=[];
 
-for k=1:Npatchiter,
+for k=1:Npatchiter
     Ip=allIp(k,:);
     Qp={};
   
@@ -73,21 +72,21 @@ for k=1:Npatchiter,
         q=q.*nAm(j);
         
         Qp{j}.q   = q';
-        if length(dist)>1, %% more than 1 vertex in fwhm
+        if length(dist)>1 %% more than 1 vertex in fwhm
             areamm2=pi*(max(dist*1000)/2).^2;
         else
             areamm2=areapervertex*1e6; % take approx area per vertex in this region
-        end;
+        end
         
         mompervertex=mean(q(useind));
         peakmom=max(q(useind));
         mompermm2(j)=full(mompervertex*length(dist)/(areamm2)); %% nAm/mm2
         peakmompermm2(j)=full(peakmom*length(dist)/(areamm2));%% nAm/mm2
-        if k==Npatchiter,
+        if k==Npatchiter
             fprintf('\n In last iteration...setting up patch %d with  %3.2f nAm , FWHM %3.2fmm, mean moment density %3.2f pAm/mm2, peak momemnt density %3.2f pAm/mm2 \n',j,nAm(j),smoothm(j)*1000,mompermm2(j)*1000,peakmompermm2(j)*1000);
-        end;
+        end
         
-    end; % for j
+    end % for j
     
     fprintf('Prior %d. Average Mean (over dist of FWHM from centre) moment density %3.2f, sd %3.2f pAm/mm2\n',k,mean(mompermm2)*1000,std(mompermm2)*1000);
     fprintf('Prior %d. Average Peak (max vertex) moment density %3.2f, sd %3.2f pAm/mm2\n',k,mean(peakmompermm2)*1000,std(peakmompermm2)*1000);
@@ -95,13 +94,13 @@ for k=1:Npatchiter,
     
     % NOW MAYBE WRITE A NEW PATCH FILE
     
-    idnum=randi(1e6);
-    priorfname=[priordir filesep sprintf('prior%d.mat',idnum)];
-    fprintf('Saving %s\n',priorfname);
-    F=[]; % no associated free energy value
-    allpriornames=strvcat(allpriornames,priorfname);
-    save(priorfname,'Qp','Qe','UL','F','-v7.3');
-end; % for k
+%     idnum=randi(1e6);
+%     priorfname=[priordir filesep sprintf('prior%d.mat',idnum)];
+%     fprintf('Saving %s\n',priorfname);
+%     F=[]; % no associated free energy value
+%     allpriornames=strvcat(allpriornames,priorfname);
+%     save(priorfname,'Qp','Qe','UL','F','-v7.3');
+end % for k
 
 
 %==========================================================================

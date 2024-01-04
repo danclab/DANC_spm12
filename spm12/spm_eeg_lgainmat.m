@@ -42,7 +42,13 @@ end
 
 try
     fname = D.inv{val}.gainmat;
-    G = load(fullfile(D.path, fname)); % Relative path
+    [gain_dir,gain_file]=fileparts(fname);
+    
+    if length(gain_dir)==0
+        fname = fullfile(D.path, gain_file);
+    end
+    
+    G = load(fname); % Relative path
     
     label = G.label;
     G     = G.G;

@@ -24,7 +24,8 @@ outinv = cfg_entry;
 outinv.tag = 'outinv';
 outinv.name = 'Output prefix to save a copy of inv structure';
 outinv.strtype = 's';
-outinv.help = {'If this is supplied the original dataset will still be updated but new inverse structure with this name created'};utinv.val = {''};
+outinv.help = {'If this is supplied the original dataset will still be updated but new inverse structure with this name created'};
+outinv.val = {''};
 
 
 
@@ -250,11 +251,19 @@ restrict.name = 'Restrict solutions';
 restrict.help = {'Restrict solutions to pre-specified VOIs'};
 restrict.val  = {locs, radius};
 
+gain_mat = cfg_files;
+gain_mat.tag = 'gain_mat';
+gain_mat.name = 'File containing gain matrix';
+gain_mat.filter = 'mat';
+gain_mat.num=[1 1];
+gain_mat.val={''};
+gain_mat.help = {'File containing gain matrix, if no file is supplied it will be computed'};
+
 custom = cfg_branch;
 custom.tag = 'custom';
 custom.name = 'Custom';
 custom.help = {'Define custom settings for the inversion'};
-custom.val  = {invfunc,invtype, wois, foi, hanning,isfixedpatch,patchfwhm,mselect,nsmodes,umodes,ntmodes, priors, restrict,outinv};
+custom.val  = {invfunc,invtype, wois, foi, hanning,isfixedpatch,patchfwhm,mselect,nsmodes,umodes,ntmodes, priors, restrict, gain_mat, outinv};
 
 isstandard = cfg_choice;
 isstandard.tag = 'isstandard';
@@ -527,6 +536,10 @@ else,
 end;
 
 
+if isfield(job.isstandard, 'custom') && ~isempty(job.isstandard.custom.gain_mat)
+    disp('Using precomputed gain matrix');
+    D{1}.inv{1}.gainmat=char(job.isstandard.custom.gain_mat{1});
+end
 
 
 

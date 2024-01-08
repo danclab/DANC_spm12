@@ -158,10 +158,9 @@ end;
 
 
 
-
-
-spm_eeg_invert_display(Dtest{1});
-
+if ~spm('CmdLine')
+    spm_eeg_invert_display(Dtest{1});
+end
 
 
 

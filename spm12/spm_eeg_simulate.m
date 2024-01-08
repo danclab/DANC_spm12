@@ -425,47 +425,49 @@ end
 [dum,tmpind]=sort(allchanstd);
 dnewind=chanind(tmpind);
 
-if isempty(ormni)
-    hold on
-    mnivert=Dnew.inv{val}.mesh.tess_mni.vert;
-    
-    
-    Nj      = size(mnivert,1);
-    M       = X;
-    G       = sqrt(sparse(1:Nj,1,M,Nj,1));
-    Fgraph  = spm_figure('GetWin','Graphics');
-    j       = find(M);
-    
-    clf(Fgraph)
-    figure(Fgraph)
-    spm_mip(G(j),mnivert(j,:)',6);
-    axis image
-    title({sprintf('Generated source activity')});
-    drawnow
-end;
-figure
+if ~spm('CmdLine')
+    if isempty(ormni)
+        hold on
+        mnivert=Dnew.inv{val}.mesh.tess_mni.vert;
 
-if length(size(tmp))==2
-    aux = tmp(tmpind(end),:);
-else
-    aux = squeeze(mean(tmp(tmpind(end),:,:),3));
+
+        Nj      = size(mnivert,1);
+        M       = X;
+        G       = sqrt(sparse(1:Nj,1,M,Nj,1));
+        Fgraph  = spm_figure('GetWin','Graphics');
+        j       = find(M);
+
+        clf(Fgraph)
+        figure(Fgraph)
+        spm_mip(G(j),mnivert(j,:)',6);
+        axis image
+        title({sprintf('Generated source activity')});
+        drawnow
+    end;
+    figure
+
+    if length(size(tmp))==2
+        aux = tmp(tmpind(end),:);
+    else
+        aux = squeeze(mean(tmp(tmpind(end),:,:),3));
+    end
+    subplot(2,1,1);
+    plot(Dnew.time,Dnew(dnewind(end),:,1),Dnew.time,aux,'r');
+    title('Measured activity over max sensor');
+    legend('Noisy','Noiseless');
+    ylabel(sensorunits{chanind(1)});
+    subplot(2,1,2);
+    if length(size(tmp))==2
+        aux = tmp(tmpind(floor(length(tmpind)/2)),:);
+    else
+        aux = squeeze(mean(tmp(tmpind(floor(length(tmpind)/2)),:,:),3));
+    end
+    plot(Dnew.time,Dnew(dnewind(floor(length(tmpind)/2)),:,1),Dnew.time,aux,'r');
+    title('Measured activity over median sensor');
+    legend('Noisy','Noiseless');
+    ylabel(sensorunits{chanind(1)});
+    xlabel('Time in sec');
 end
-subplot(2,1,1);
-plot(Dnew.time,Dnew(dnewind(end),:,1),Dnew.time,aux,'r');
-title('Measured activity over max sensor');
-legend('Noisy','Noiseless');
-ylabel(sensorunits{chanind(1)});
-subplot(2,1,2);
-if length(size(tmp))==2
-    aux = tmp(tmpind(floor(length(tmpind)/2)),:);
-else
-    aux = squeeze(mean(tmp(tmpind(floor(length(tmpind)/2)),:,:),3));
-end
-plot(Dnew.time,Dnew(dnewind(floor(length(tmpind)/2)),:,1),Dnew.time,aux,'r');
-title('Measured activity over median sensor');
-legend('Noisy','Noiseless');
-ylabel(sensorunits{chanind(1)});
-xlabel('Time in sec');
 
 Dnew.save;
 

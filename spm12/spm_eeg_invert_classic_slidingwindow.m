@@ -872,7 +872,9 @@ D.inv{val}.method  = 'Imaging';
 
 % display
 %======================================================================
-spm_eeg_invert_display(D);
-drawnow
+if ~spm('CmdLine')
+    spm_eeg_invert_display(D);
+    drawnow
+end
 
 return

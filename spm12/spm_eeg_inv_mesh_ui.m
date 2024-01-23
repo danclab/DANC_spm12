@@ -22,8 +22,10 @@ SVNrev = '$Rev: 4027 $';
 
 %-Startup
 %--------------------------------------------------------------------------
-spm('FnBanner', mfilename, SVNrev);
-spm('FigName','Define head model');
+if ~spm('CmdLine')
+    spm('FnBanner', mfilename, SVNrev);
+    spm('FigName','Define head model');
+end
 
 %-Initialisation
 %--------------------------------------------------------------------------

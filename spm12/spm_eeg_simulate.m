@@ -246,6 +246,11 @@ if ~isempty(ormni), %%%% DIPOLE SIMULATION
     end
     
     %% NB COULD ADD A PURE DIPOLE SIMULATION IN FUTURE
+    [L Dnew] = spm_eeg_lgainmat(Dnew);              % Gain matrix
+    if isfield(Dnew.inv{val}.forward,'scale'),
+        L=L./Dnew.inv{val}.forward.scale; %% account for rescaling of lead fields
+    end;
+    
     sens=Dnew.inv{val}.forward.sensors;
     vol=Dnew.inv{val}.forward.vol;
 
@@ -308,13 +313,13 @@ else %%% CURRENT DENSITY ON SURFACE SIMULATION
     base.nAm=nAmdipmom;
     
     
-    [a1,b1,c1]=fileparts(Dnew.fname);
+    [~,b1,~]=fileparts(Dnew.fname);
     
-    priordir=[Dnew.path filesep 'simprior_' b1 ];
-    mkdir(priordir);
-    fprintf('Saving prior in directory %s\n',priordir);
+%     priordir=[Dnew.path filesep 'simprior_' b1 ];
+%     mkdir(priordir);
+%     fprintf('Saving prior in directory %s\n',priordir);
     
-    [Qp,Qe,priorfname]=spm_eeg_invert_setuppatches(meshsourceind,nativemesh,base,priordir,Qe,L);
+    [Qp,~]=spm_eeg_invert_setuppatches(meshsourceind,nativemesh,base,Qe);
     
     
 
@@ -387,31 +392,31 @@ for i=1:Ntrials
     n=n+size(y,2); %% number of samples
 end
 
-YY=YY./n; %% NORMALIZE HERE
+% YY=YY./n; %% NORMALIZE HERE
 
-F=[];
+% F=[];
 %UL=L;
-if isempty(ormni)
-    %save(priorfname,'Qp','Qe','UL','F');
-    save(priorfname,'Qp','Qe','F');
-    if ~isempty(Qe)
-        figure;
-        ploton=1;
-        [LQpL,Q,sumLQpL,QE,Csensor]=spm_eeg_assemble_priors(L,Qp,{Qe},ploton);
-
-
-        figure;
-        subplot(3,1,1);
-        imagesc(YY);colorbar;
-        title('Empirical data covariance per sample: YY');
-        subplot(3,1,2);
-        imagesc(Csensor);colorbar;
-        title('Prior total sensor covariance');
-        subplot(3,1,3);
-        imagesc(YY-Csensor);colorbar;
-        title('Difference');
-    end
-end
+% if isempty(ormni)
+%     %save(priorfname,'Qp','Qe','UL','F');
+%     save(priorfname,'Qp','Qe','F');
+%     if ~isempty(Qe)
+%         figure;
+%         ploton=1;
+%         [LQpL,Q,sumLQpL,QE,Csensor]=spm_eeg_assemble_priors(L,Qp,{Qe},ploton);
+% 
+% 
+%         figure;
+%         subplot(3,1,1);
+%         imagesc(YY);colorbar;
+%         title('Empirical data covariance per sample: YY');
+%         subplot(3,1,2);
+%         imagesc(Csensor);colorbar;
+%         title('Prior total sensor covariance');
+%         subplot(3,1,3);
+%         imagesc(YY-Csensor);colorbar;
+%         title('Difference');
+%     end
+% end
 
 
 
@@ -420,47 +425,49 @@ end
 [dum,tmpind]=sort(allchanstd);
 dnewind=chanind(tmpind);
 
-if isempty(ormni)
-    hold on
-    mnivert=Dnew.inv{val}.mesh.tess_mni.vert;
-    
-    
-    Nj      = size(mnivert,1);
-    M       = X;
-    G       = sqrt(sparse(1:Nj,1,M,Nj,1));
-    Fgraph  = spm_figure('GetWin','Graphics');
-    j       = find(M);
-    
-    clf(Fgraph)
-    figure(Fgraph)
-    spm_mip(G(j),mnivert(j,:)',6);
-    axis image
-    title({sprintf('Generated source activity')});
-    drawnow
-end;
-figure
+if ~spm('CmdLine')
+    if isempty(ormni)
+        hold on
+        mnivert=Dnew.inv{val}.mesh.tess_mni.vert;
 
-if length(size(tmp))==2
-    aux = tmp(tmpind(end),:);
-else
-    aux = squeeze(mean(tmp(tmpind(end),:,:),3));
+
+        Nj      = size(mnivert,1);
+        M       = X;
+        G       = sqrt(sparse(1:Nj,1,M,Nj,1));
+        Fgraph  = spm_figure('GetWin','Graphics');
+        j       = find(M);
+
+        clf(Fgraph)
+        figure(Fgraph)
+        spm_mip(G(j),mnivert(j,:)',6);
+        axis image
+        title({sprintf('Generated source activity')});
+        drawnow
+    end;
+    figure
+
+    if length(size(tmp))==2
+        aux = tmp(tmpind(end),:);
+    else
+        aux = squeeze(mean(tmp(tmpind(end),:,:),3));
+    end
+    subplot(2,1,1);
+    plot(Dnew.time,Dnew(dnewind(end),:,1),Dnew.time,aux,'r');
+    title('Measured activity over max sensor');
+    legend('Noisy','Noiseless');
+    ylabel(sensorunits{chanind(1)});
+    subplot(2,1,2);
+    if length(size(tmp))==2
+        aux = tmp(tmpind(floor(length(tmpind)/2)),:);
+    else
+        aux = squeeze(mean(tmp(tmpind(floor(length(tmpind)/2)),:,:),3));
+    end
+    plot(Dnew.time,Dnew(dnewind(floor(length(tmpind)/2)),:,1),Dnew.time,aux,'r');
+    title('Measured activity over median sensor');
+    legend('Noisy','Noiseless');
+    ylabel(sensorunits{chanind(1)});
+    xlabel('Time in sec');
 end
-subplot(2,1,1);
-plot(Dnew.time,Dnew(dnewind(end),:,1),Dnew.time,aux,'r');
-title('Measured activity over max sensor');
-legend('Noisy','Noiseless');
-ylabel(sensorunits{chanind(1)});
-subplot(2,1,2);
-if length(size(tmp))==2
-    aux = tmp(tmpind(floor(length(tmpind)/2)),:);
-else
-    aux = squeeze(mean(tmp(tmpind(floor(length(tmpind)/2)),:,:),3));
-end
-plot(Dnew.time,Dnew(dnewind(floor(length(tmpind)/2)),:,1),Dnew.time,aux,'r');
-title('Measured activity over median sensor');
-legend('Noisy','Noiseless');
-ylabel(sensorunits{chanind(1)});
-xlabel('Time in sec');
 
 Dnew.save;
 

@@ -563,20 +563,42 @@ switch(type)
         % create SMOOTH beamforming prior. 
         disp('NB smooth EBB algorithm !');
         %------------------------------------------------------------------
+%         InvCov = spm_inv(AYYA);
+%         allsource = sparse(Ns,1);
+%         Sourcepower = sparse(Ns,1);
+%         for bk = 1:Ns
+%             q               = QG(:,bk);
+%             
+%             smthlead = UL*q;     %% THIS IS WHERE THE SMOOTHNESS GETS ADDED
+%             if ~all(smthlead==0)
+%                 normpower = 1/(smthlead'*smthlead);
+%                 Sourcepower(bk) = 1/(smthlead'*InvCov*smthlead);
+%                 allsource(bk) = Sourcepower(bk)./normpower;
+%             end
+%         end
+%         allsource = allsource/max(allsource);   % Normalise
         InvCov = spm_inv(AYYA);
-        allsource = sparse(Ns,1);
-        Sourcepower = sparse(Ns,1);
-        for bk = 1:Ns
-            q               = QG(:,bk);
-            
-            smthlead = UL*q;     %% THIS IS WHERE THE SMOOTHNESS GETS ADDED
-            if ~all(smthlead==0)
-                normpower = 1/(smthlead'*smthlead);
-                Sourcepower(bk) = 1/(smthlead'*InvCov*smthlead);
-                allsource(bk) = Sourcepower(bk)./normpower;
+
+        % Precompute the square of each column in UL
+        UL_sqr = sum(UL.^2, 1);
+
+        % Preallocate for efficiency
+        allsource = zeros(Ns, 1);
+        
+        % Vectorized calculations
+        parfor bk = 1:Ns
+            q = QG(:,bk);
+            smthlead = UL*q;  % Smoothing added
+
+            if ~all(smthlead == 0)
+                normpower = 1 / UL_sqr(bk);
+                Sourcepower = 1 / (smthlead' * InvCov * smthlead);
+                allsource(bk) = Sourcepower / normpower;
             end
         end
-        allsource = allsource/max(allsource);   % Normalise
+
+        % Normalization - convert back to sparse if necessary
+        allsource = sparse(allsource / max(allsource));
         
         Qp{1} = diag(allsource);
         LQpL{1} = UL*diag(allsource)*UL';
@@ -863,7 +885,10 @@ D.inv{val}.method  = 'Imaging';
 
 % display
 %======================================================================
-spm_eeg_invert_display(D);
-drawnow
+if ~spm('CmdLine')
+    spm_eeg_invert_display(D);
+    drawnow
+end
+
 
 return

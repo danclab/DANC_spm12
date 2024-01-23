@@ -42,7 +42,13 @@ end
 
 try
     fname = D.inv{val}.gainmat;
-    G = load(fullfile(D.path, fname)); % Relative path
+    [gain_dir,gain_file]=fileparts(fname);
+    
+    if length(gain_dir)==0
+        fname = fullfile(D.path, gain_file);
+    end
+    
+    G = load(fname); % Relative path
     
     label = G.label;
     G     = G.G;
@@ -192,7 +198,7 @@ catch
     % Save
     %----------------------------------------------------------------------
     D.inv{val}.gainmat = ['SPMgainmatrix_' spm_file(D.fname, 'basename') '_' num2str(val) '.mat'];
-    save(fullfile(D.path, D.inv{val}.gainmat), 'G', 'label');
+    save(fullfile(D.path, D.inv{val}.gainmat), 'G', 'label', '-v7.3');
     save(D);
 end
 
